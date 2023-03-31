@@ -1,0 +1,10 @@
+ 
+ 
+link(rel='stylesheet', href='/stylesheets/style.css')
+.container
+    form(action="/login" method="get")
+        label(for="username") Username:
+        input(type="text" id="username" name="username" required)
+        label(for="password") Password:
+        input(type="password" id="password" name="password" required)
+        button(type="submit") Login
