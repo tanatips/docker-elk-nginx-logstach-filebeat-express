@@ -89,8 +89,10 @@ services:
       - "443:443"
     links:
       - app:app
+      - api:api
     depends_on: 
       - app
+      - api
     networks:
       - elk
 
@@ -110,6 +112,47 @@ services:
       - kibana
     links: 
       - logstash
+
+  api:
+    build : ./api
+    volumes:
+      - ./api/:/usr/src/app
+      - /usr/src/app/node_modules/ # make node_module empty in container
+    command: npm start
+    ports:
+      - "2000:2000"
+    networks:
+      - elk
+
+    # Database
+  db:
+    platform: linux/x86_64
+    image: mysql:5.7
+    volumes:
+      - ./mysql/db_data:/var/lib/mysql
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: P@ssw0rd
+      MYSQL_DATABASE: elas
+      MYSQL_PASSWORD: P@ssw0rd
+    networks:
+      - elk
+
+  # phpmyadmin
+  phpmyadmin:
+    depends_on:
+      - db
+    image: phpmyadmin
+    restart: always
+    ports:
+      - "8090:80"
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: P@ssw0rd
+    networks:
+      - elk
 
 networks:
   elk:

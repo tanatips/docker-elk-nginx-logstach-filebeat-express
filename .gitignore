@@ -1,2 +1,5 @@
 app/node_modules
 nginx/log
+api/node_modules
+data
+mysql
