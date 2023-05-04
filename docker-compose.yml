@@ -29,14 +29,17 @@ services:
       args:
         ELK_VERSION: $ELK_VERSION
     volumes:
-      - type: bind
-        source: ./logstash/config/logstash.yml
-        target: /usr/share/logstash/config/logstash.yml
-        read_only: true
-      - type: bind
-        source: ./logstash/pipeline
-        target: /usr/share/logstash/pipeline
-        read_only: true
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
+      - ./logstash/pipeline/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+      - ./dvwa/log/:/usr/share/dvwa/log
+      # - type: bind
+      #   source: ./logstash/config/logstash.yml
+      #   target: /usr/share/logstash/config/logstash.yml
+      #   read_only: true
+      # - type: bind
+      #   source: ./logstash/pipeline
+      #   target: /usr/share/logstash/pipeline
+      #   read_only: true
     ports:
       - "5000:5000"
       - "9600:9600"
@@ -48,6 +51,7 @@ services:
       - elk
     depends_on:
       - elasticsearch
+    command: logstash -f /usr/share/logstash/pipeline/logstash.conf
 
   kibana:
     build:
@@ -66,95 +70,25 @@ services:
     depends_on:
       - elasticsearch
 
-  app:
-    build: ./app
-    container_name: app
-    volumes:
-      - ./app/:/usr/app
-      - /usr/src/app/node_modules/
-    expose:
-      - "4000"
-    ports:
-      - "4000:3000"
-    networks:
-      - elk
-
-  nginx:
-    build: ./nginx
-    volumes:
-      - ./nginx/config:/etc/nginx/conf.d
-      - ./nginx/log:/var/log/nginx
-    ports:
-      - "8081:80"
-      - "443:443"
-    links:
-      - app:app
-      - api:api
-    depends_on: 
-      - app
-      - api
-    networks:
-      - elk
-
   filebeat:
     build: ./filebeat
     entrypoint: "filebeat -e -strict.perms=false"
     volumes:
       - ./filebeat/config/filebeat.yml:/usr/share/filebeat/filebeat.yml
-      - ./nginx/log:/var/log/nginx
+      # - ./nginx/log:/var/log/nginx
     networks:
       - elk
     depends_on: 
-      - app
-      - nginx
       - logstash
       - elasticsearch
       - kibana
     links: 
       - logstash
 
-  api:
-    build : ./api
-    volumes:
-      - ./api/:/usr/src/app
-      - /usr/src/app/node_modules/ # make node_module empty in container
-    command: npm start
-    ports:
-      - "2000:2000"
-    networks:
-      - elk
-
-    # Database
-  # db:
-  #   platform: linux/x86_64
-  #   image: mysql:5.7
-  #   volumes:
-  #     - ./mysql/db_data:/var/lib/mysql
-  #   restart: always
-  #   ports:
-  #     - "3307:3306"
-  #   environment:
-  #     MYSQL_ROOT_PASSWORD: P@ssw0rd
-  #     MYSQL_DATABASE: elas
-  #     MYSQL_PASSWORD: P@ssw0rd
-  #   networks:
-  #     - elk
-  
-  # phpmyadmin
-  # phpmyadmin:
-  #   depends_on:
-  #     - db
-  #   image: phpmyadmin
-  #   restart: always
-  #   ports:
-  #     - "8090:80"
-  #   environment:
-  #     PMA_HOST: db
-  #     MYSQL_ROOT_PASSWORD: P@ssw0rd
-  #   networks:
-  #     - elk
   dvwa:
     image: vulnerables/web-dvwa
+    volumes:
+      - ./dvwa/log/:/var/log/apache2/
     ports:
       - "8082:80"
     environment:
